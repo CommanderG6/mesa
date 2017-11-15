@@ -2563,7 +2563,11 @@ etna_link_shader(struct etna_shader_link_info *info,
       const struct etna_shader_inout *fsio = &fs->infile.reg[idx];
       const struct etna_shader_inout *vsio = etna_shader_vs_lookup(vs, fsio);
       struct etna_varying *varying;
-      bool interpolate_always = fsio->semantic.Name != TGSI_SEMANTIC_COLOR;
+      /* Texture coordinates will get replaced with the point coordinate when
+       * rendering GL_POINTS, for other primitives their interpolation is
+       * independent of the shading model. */
+      bool is_texcoord = fsio->semantic.Name == TGSI_SEMANTIC_TEXCOORD ||
+                         fsio->semantic.Name == TGSI_SEMANTIC_PCOORD;
 
       assert(fsio->reg > 0 && fsio->reg <= ARRAY_SIZE(info->varyings));
 
@@ -2573,13 +2577,14 @@ etna_link_shader(struct etna_shader_link_info *info,
       varying = &info->varyings[fsio->reg - 1];
       varying->num_components = fsio->num_components;
 
-      if (!interpolate_always) /* colors affected by flat shading */
+      /* PA_ATTRIBUTES appears to be unused on HALTI0 and up */
+      if (!is_texcoord) /* colors affected by flat shading */
          varying->pa_attributes = 0x200;
       else /* texture coord or other bypasses flat shading */
          varying->pa_attributes = 0x2f1;
 
-      varying->use[0] = interpolate_always ? VARYING_COMPONENT_USE_POINTCOORD_X : VARYING_COMPONENT_USE_USED;
-      varying->use[1] = interpolate_always ? VARYING_COMPONENT_USE_POINTCOORD_Y : VARYING_COMPONENT_USE_USED;
+      varying->use[0] = is_texcoord ? VARYING_COMPONENT_USE_POINTCOORD_X : VARYING_COMPONENT_USE_USED;
+      varying->use[1] = is_texcoord ? VARYING_COMPONENT_USE_POINTCOORD_Y : VARYING_COMPONENT_USE_USED;
       varying->use[2] = VARYING_COMPONENT_USE_USED;
       varying->use[3] = VARYING_COMPONENT_USE_USED;
 
