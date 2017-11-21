@@ -311,7 +311,7 @@ util_make_fragment_tex_shader_writemask(struct pipe_context *pipe,
    ureg_DECL_sampler_view(ureg, 0, tex_target, stype, stype, stype, stype);
 
    tex = ureg_DECL_fs_input( ureg, 
-                             TGSI_SEMANTIC_GENERIC, 0, 
+                             TGSI_SEMANTIC_TEXCOORD, 0,
                              interp_mode );
 
    out = ureg_DECL_output( ureg, 
@@ -408,7 +408,7 @@ util_make_fragment_tex_shader_writedepth(struct pipe_context *pipe,
                           TGSI_RETURN_TYPE_FLOAT);
 
    tex = ureg_DECL_fs_input( ureg,
-                             TGSI_SEMANTIC_GENERIC, 0,
+                             TGSI_SEMANTIC_TEXCOORD, 0,
                              interp_mode );
 
    out = ureg_DECL_output( ureg,
@@ -466,7 +466,7 @@ util_make_fragment_tex_shader_writedepthstencil(struct pipe_context *pipe,
                           TGSI_RETURN_TYPE_UINT);
 
    tex = ureg_DECL_fs_input( ureg,
-                             TGSI_SEMANTIC_GENERIC, 0,
+                             TGSI_SEMANTIC_TEXCOORD, 0,
                              interp_mode );
 
    out = ureg_DECL_output( ureg,
@@ -525,7 +525,7 @@ util_make_fragment_tex_shader_writestencil(struct pipe_context *pipe,
                           TGSI_RETURN_TYPE_UINT);
 
    tex = ureg_DECL_fs_input( ureg,
-                             TGSI_SEMANTIC_GENERIC, 0,
+                             TGSI_SEMANTIC_TEXCOORD, 0,
                              interp_mode );
 
    out = ureg_DECL_output( ureg,

@@ -360,7 +360,7 @@ static void *get_vs_passthrough_pos_generic(struct blitter_context *blitter)
 
    if (!ctx->vs) {
       static const enum tgsi_semantic semantic_names[] =
-         { TGSI_SEMANTIC_POSITION, TGSI_SEMANTIC_GENERIC };
+         { TGSI_SEMANTIC_POSITION, TGSI_SEMANTIC_TEXCOORD };
       const uint semantic_indices[] = { 0, 0 };
       ctx->vs =
          util_make_vertex_passthrough_shader(pipe, 2, semantic_names,
@@ -417,7 +417,7 @@ static void bind_fs_write_one_cbuf(struct blitter_context_priv *ctx)
    if (!ctx->fs_write_one_cbuf) {
       assert(!ctx->cached_all_shaders);
       ctx->fs_write_one_cbuf =
-         util_make_fragment_passthrough_shader(pipe, TGSI_SEMANTIC_GENERIC,
+         util_make_fragment_passthrough_shader(pipe, TGSI_SEMANTIC_TEXCOORD,
                                                TGSI_INTERPOLATE_CONSTANT, false);
    }
 
@@ -431,7 +431,7 @@ static void bind_fs_write_all_cbufs(struct blitter_context_priv *ctx)
    if (!ctx->fs_write_all_cbufs) {
       assert(!ctx->cached_all_shaders);
       ctx->fs_write_all_cbufs =
-         util_make_fragment_passthrough_shader(pipe, TGSI_SEMANTIC_GENERIC,
+         util_make_fragment_passthrough_shader(pipe, TGSI_SEMANTIC_TEXCOORD,
                                                TGSI_INTERPOLATE_CONSTANT, true);
    }
 
@@ -1209,11 +1209,11 @@ void util_blitter_cache_all_shaders(struct blitter_context *blitter)
    ctx->fs_empty = util_make_empty_fragment_shader(pipe);
 
    ctx->fs_write_one_cbuf =
-      util_make_fragment_passthrough_shader(pipe, TGSI_SEMANTIC_GENERIC,
+      util_make_fragment_passthrough_shader(pipe, TGSI_SEMANTIC_TEXCOORD,
                                             TGSI_INTERPOLATE_CONSTANT, false);
 
    ctx->fs_write_all_cbufs =
-      util_make_fragment_passthrough_shader(pipe, TGSI_SEMANTIC_GENERIC,
+      util_make_fragment_passthrough_shader(pipe, TGSI_SEMANTIC_TEXCOORD,
                                             TGSI_INTERPOLATE_CONSTANT, true);
 
    ctx->cached_all_shaders = true;
