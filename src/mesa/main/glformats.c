@@ -1395,7 +1395,7 @@ _mesa_is_compressed_format(const struct gl_context *ctx, GLenum format)
       return _mesa_is_gles(ctx)
          && ctx->Extensions.OES_compressed_ETC1_RGB8_texture;
    case MESA_FORMAT_LAYOUT_ETC2:
-      return _mesa_is_gles3(ctx) || ctx->Extensions.ARB_ES3_compatibility;
+	return GL_TRUE;
    case MESA_FORMAT_LAYOUT_BPTC:
       return _mesa_is_desktop_gl(ctx) &&
          ctx->Extensions.ARB_texture_compression_bptc;
