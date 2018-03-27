@@ -72,6 +72,9 @@ etna_context_destroy(struct pipe_context *pctx)
    if (ctx->stream)
       etna_cmd_stream_del(ctx->stream);
 
+   if (ctx->stream2d)
+      etna_cmd_stream_del(ctx->stream2d);
+
    slab_destroy_child(&ctx->transfer_pool);
 
    if (ctx->in_fence_fd != -1)
@@ -430,6 +433,9 @@ etna_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags)
    ctx->stream = etna_cmd_stream_new(screen->pipe, 0x2000, &etna_cmd_stream_reset_notify, ctx);
    if (ctx->stream == NULL)
       goto fail;
+
+   if (screen->pipe2d)
+      ctx->stream2d = etna_cmd_stream_new(screen->pipe2d, 0x1000, NULL, NULL);
 
    /* context ctxate setup */
    ctx->specs = screen->specs;

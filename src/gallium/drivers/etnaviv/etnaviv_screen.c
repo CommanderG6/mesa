@@ -90,6 +90,12 @@ etna_screen_destroy(struct pipe_screen *pscreen)
    if (screen->gpu)
       etna_gpu_del(screen->gpu);
 
+   if (screen->pipe2d)
+      etna_pipe_del(screen->pipe2d);
+
+   if (screen->gpu2d)
+      etna_gpu_del(screen->gpu2d);
+
    if (screen->ro)
       FREE(screen->ro);
 
@@ -883,6 +889,66 @@ etna_screen_bo_from_handle(struct pipe_screen *pscreen,
    return bo;
 }
 
+static void etna_screen_init_2d(struct etna_screen *screen)
+{
+   struct etna_gpu *gpu2d = NULL;
+   uint64_t val;
+   int ret, i;
+
+   /* If the current GPU is a combined 2d/3D core, use it as 2D engine */
+   if (screen->features[0] & chipFeatures_PIPE_2D)
+      gpu2d = screen->gpu;
+
+   /* otherwise search for a 2D capable core */
+   if (!gpu2d) {
+      for (i = 0;; i++) {
+         gpu2d = etna_gpu_new(screen->dev, i);
+         if (!gpu2d)
+            return;
+
+         ret = etna_gpu_get_param(gpu2d, ETNA_GPU_FEATURES_0, &val);
+         if (!ret && (val & chipFeatures_PIPE_2D)) {
+            screen->gpu2d = gpu2d;
+            break;
+         }
+
+         etna_gpu_del(gpu2d);
+      }
+   }
+
+   if (etna_gpu_get_param(screen->gpu2d, ETNA_GPU_FEATURES_0, &val))
+      return;
+   screen->features2d[0] = val;
+
+   if (etna_gpu_get_param(screen->gpu2d, ETNA_GPU_FEATURES_1, &val))
+      return;
+   screen->features2d[1] = val;
+
+   if (etna_gpu_get_param(screen->gpu2d, ETNA_GPU_FEATURES_2, &val))
+      return;
+   screen->features2d[2] = val;
+
+   if (etna_gpu_get_param(screen->gpu2d, ETNA_GPU_FEATURES_3, &val))
+      return;
+   screen->features2d[3] = val;
+
+   if (etna_gpu_get_param(screen->gpu2d, ETNA_GPU_FEATURES_4, &val))
+      return;
+   screen->features2d[4] = val;
+
+   if (etna_gpu_get_param(screen->gpu2d, ETNA_GPU_FEATURES_5, &val))
+      return;
+   screen->features2d[5] = val;
+
+   if (etna_gpu_get_param(screen->gpu2d, ETNA_GPU_FEATURES_6, &val))
+      return;
+   screen->features2d[6] = val;
+
+   screen->pipe2d = etna_pipe_new(gpu2d, ETNA_PIPE_2D);
+   if (!screen->pipe2d)
+      DBG("could not create 2d pipe");
+}
+
 struct pipe_screen *
 etna_screen_create(struct etna_device *dev, struct etna_gpu *gpu,
                    struct renderonly *ro)
@@ -975,6 +1041,8 @@ etna_screen_create(struct etna_device *dev, struct etna_gpu *gpu,
       goto fail;
    }
    screen->features[6] = val;
+
+   etna_screen_init_2d(screen);
 
    if (!etna_get_specs(screen))
       goto fail;

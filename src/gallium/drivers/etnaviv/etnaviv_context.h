@@ -109,6 +109,7 @@ struct etna_context {
    struct etna_specs specs;
    struct etna_screen *screen;
    struct etna_cmd_stream *stream;
+   struct etna_cmd_stream *stream2d;
 
    /* which state objects need to be re-emit'd: */
    enum {

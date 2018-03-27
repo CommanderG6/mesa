@@ -58,6 +58,9 @@ enum viv_features_word {
 #define VIV_FEATURE(screen, word, feature) \
    ((screen->features[viv_ ## word] & (word ## _ ## feature)) != 0)
 
+#define VIV_2D_FEATURE(screen, word, feature) \
+   ((screen->features2d[viv_ ## word] & (word ## _ ## feature)) != 0)
+
 struct etna_screen {
    struct pipe_screen base;
 
@@ -66,7 +69,9 @@ struct etna_screen {
 
    struct etna_device *dev;
    struct etna_gpu *gpu;
+   struct etna_gpu *gpu2d;
    struct etna_pipe *pipe;
+   struct etna_pipe *pipe2d;
    struct etna_perfmon *perfmon;
    struct renderonly *ro;
 
@@ -76,6 +81,7 @@ struct etna_screen {
    uint32_t model;
    uint32_t revision;
    uint32_t features[VIV_FEATURES_WORD_COUNT];
+   uint32_t features2d[VIV_FEATURES_WORD_COUNT];
 
    struct etna_specs specs;
 
