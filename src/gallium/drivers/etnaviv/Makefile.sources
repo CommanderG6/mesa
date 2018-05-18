@@ -3,11 +3,13 @@ C_SOURCES :=  \
 	hw/common.xml.h \
 	hw/common_3d.xml.h \
 	hw/isa.xml.h \
+	hw/state_2d.xml.h \
 	hw/state_3d.xml.h \
 	hw/state_blt.xml.h \
 	hw/state.xml.h \
 	hw/texdesc_3d.xml.h \
 	\
+	etnaviv_2d.c \
 	etnaviv_asm.c \
 	etnaviv_asm.h \
 	etnaviv_blend.c \
