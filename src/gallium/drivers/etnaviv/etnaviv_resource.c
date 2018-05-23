@@ -512,7 +512,7 @@ etna_resource_from_handle(struct pipe_screen *pscreen,
    rsc->seqno = 1;
    rsc->layout = modifier_to_layout(handle->modifier);
    rsc->halign = TEXTURE_HALIGN_FOUR;
-
+   rsc->offset = handle->offset;
 
    level->width = tmpl->width0;
    level->height = tmpl->height0;
