@@ -26,6 +26,7 @@
 
 #include "etnaviv_rs.h"
 
+#include "etnaviv_2d.h"
 #include "etnaviv_clear_blit.h"
 #include "etnaviv_context.h"
 #include "etnaviv_emit.h"
@@ -773,6 +774,10 @@ etna_blit_rs(struct pipe_context *pctx, const struct pipe_blit_info *blit_info)
       DBG("color resolve unimplemented");
       return;
    }
+
+   if (util_format_is_yuv(blit_info->src.format) &&
+       etna_try_2d_blit(pctx, blit_info))
+      return;
 
    if (etna_try_rs_blit(pctx, blit_info))
       return;

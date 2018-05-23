@@ -164,6 +164,9 @@ etna_update_sampler_source(struct pipe_sampler_view *view, int num)
 static bool
 etna_resource_sampler_compatible(struct etna_resource *res)
 {
+   if (util_format_is_yuv(res->base.format))
+      return false;
+
    if (util_format_is_compressed(res->base.format))
       return true;
 
@@ -201,6 +204,10 @@ etna_texture_handle_incompatible(struct pipe_context *pctx, struct pipe_resource
 
          templat.bind &= ~(PIPE_BIND_DEPTH_STENCIL | PIPE_BIND_RENDER_TARGET |
                            PIPE_BIND_BLENDABLE);
+
+         if (util_format_is_yuv(prsc->format))
+            templat.format = PIPE_FORMAT_R8G8B8A8_UNORM;
+
          res->texture =
             etna_resource_alloc(pctx->screen, ETNA_LAYOUT_TILED,
                                 DRM_FORMAT_MOD_LINEAR, &templat);

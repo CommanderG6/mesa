@@ -540,6 +540,12 @@ etna_resource_from_handle(struct pipe_screen *pscreen,
                                                                   level->padded_height);
    level->size = level->layer_stride;
 
+   /* YUV resources are handled by the 2D GPU, so the below constraint checks
+    * are invalid.
+    */
+   if (util_format_is_yuv(tmpl->format))
+      return prsc;
+
    /* The DDX must give us a BO which conforms to our padding size.
     * The stride of the BO must be greater or equal to our padded
     * stride. The size of the BO must accomodate the padded height. */

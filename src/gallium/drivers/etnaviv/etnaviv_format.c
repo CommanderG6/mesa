@@ -282,8 +282,11 @@ static struct etna_format formats[PIPE_FORMAT_COUNT] = {
    _T(ASTC_12x12_SRGB, ASTC_SRGB8_ALPHA8_12x12 | ASTC_FORMAT,          SWIZ(X, Y, Z, W), NONE, NONE),
 
    /* YUV */
-   _T(YUYV, YUY2, SWIZ(X, Y, Z, W), YUY2, NONE),
+   _T(YUYV, X8B8G8R8, SWIZ(X, Y, Z, W), NONE, NONE),
    _T(UYVY, UYVY, SWIZ(X, Y, Z, W), NONE, NONE),
+
+   /* multi-planar YUV */
+   _T(NV12, X8B8G8R8, SWIZ(X, Y, Z, W), NONE, NONE),
 };
 
 uint32_t
