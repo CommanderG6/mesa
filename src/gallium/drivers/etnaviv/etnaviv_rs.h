@@ -84,6 +84,10 @@ void
 etna_compile_rs_state(struct etna_context *ctx, struct compiled_rs_state *cs,
                       const struct rs_state *rs);
 
+void
+etna_submit_rs_state(struct etna_context *ctx,
+                     const struct compiled_rs_state *cs);
+
 /* Context initialization for RS clear_blit functions. */
 void
 etna_clear_blit_rs_init(struct pipe_context *pctx);

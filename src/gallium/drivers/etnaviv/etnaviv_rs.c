@@ -172,7 +172,7 @@ etna_modify_rs_clearbits(struct compiled_rs_state *cs, uint32_t clear_bits)
 
 /* submit RS state, without any processing and no dependence on context
  * except TS if this is a source-to-destination blit. */
-static void
+void
 etna_submit_rs_state(struct etna_context *ctx,
                      const struct compiled_rs_state *cs)
 {
