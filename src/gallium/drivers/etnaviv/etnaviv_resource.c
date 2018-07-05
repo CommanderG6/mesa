@@ -525,6 +525,14 @@ etna_resource_from_handle(struct pipe_screen *pscreen,
    level->width = tmpl->width0;
    level->height = tmpl->height0;
 
+   /* Reject imports of linear buffers if they have a blocksize incompatible
+    * with the hardware tiler, as we don't have a fallback path to get them into
+    * a render/sampler compatible layout.
+    */
+   if (rsc->layout == ETNA_LAYOUT_LINEAR && !screen->specs.use_blt &&
+       util_format_get_blocksize(prsc->format) == 1)
+      goto fail;
+
    /* Determine padding of the imported resource. */
    unsigned paddingX = 0, paddingY = 0;
    etna_layout_multiple(rsc->layout, screen->specs.pixel_pipes,
