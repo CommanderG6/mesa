@@ -44,6 +44,7 @@
 #include "pipe/p_defines.h"
 #include "pipe/p_screen.h"
 #include "util/u_gen_mipmap.h"
+#include "cso_cache/cso_context.h"
 
 
 void st_flush(struct st_context *st,
@@ -62,6 +63,7 @@ void st_flush(struct st_context *st,
 void st_finish( struct st_context *st )
 {
    struct pipe_fence_handle *fence = NULL;
+   int i;
 
    st_flush(st, &fence, PIPE_FLUSH_ASYNC | PIPE_FLUSH_HINT_FINISH);
 
@@ -72,6 +74,15 @@ void st_finish( struct st_context *st )
    }
 
    st_manager_flush_swapbuffers();
+
+   /* Release all fragment sampler views on glFinish. This removes the
+    * remaining state references on imported texture resources, so that
+    * they will be really released by glDeleteTextures / eglDestroyImage
+    * immediately and not kept around until the next draw call.
+    */
+   for (i = 0; i < ARRAY_SIZE(st->state.frag_sampler_views); i++)
+      pipe_sampler_view_release(st->pipe, &st->state.frag_sampler_views[i]);
+   cso_set_sampler_views(st->cso_context, PIPE_SHADER_FRAGMENT, 0, NULL);
 }
 
 
