@@ -1388,6 +1388,9 @@ unbind_texobj_from_texunits(struct gl_context *ctx,
 
       if (texObj == unit->CurrentTex[index]) {
          /* Bind the default texture for this unit/target */
+         if (unit->_Current == unit->CurrentTex[index])
+            _mesa_reference_texobj(&unit->_Current,
+                                   ctx->Shared->DefaultTex[index]);
          _mesa_reference_texobj(&unit->CurrentTex[index],
                                 ctx->Shared->DefaultTex[index]);
          unit->_BoundTextures &= ~(1 << index);
@@ -1676,6 +1679,8 @@ bind_texture_object(struct gl_context *ctx, unsigned unit,
    /* If the refcount on the previously bound texture is decremented to
     * zero, it'll be deleted here.
     */
+   if (texUnit->_Current == texUnit->CurrentTex[targetIndex])
+      _mesa_reference_texobj(&texUnit->_Current, texObj);
    _mesa_reference_texobj(&texUnit->CurrentTex[targetIndex], texObj);
 
    ctx->Texture.NumCurrentTexUsed = MAX2(ctx->Texture.NumCurrentTexUsed,
