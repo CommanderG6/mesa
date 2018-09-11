@@ -1304,6 +1304,12 @@ hud_parse_env_var(struct hud_context *hud, struct pipe_screen *screen,
          hud_cpufreq_graph_install(pane, i, CPUFREQ_MAXIMUM);
          pane->type = PIPE_DRIVER_QUERY_TYPE_HZ;
       }
+      else if (sscanf(name, "gpu-%s", arg_name) == 1) {
+         hud_gpu_graph_install(pane, arg_name);
+      }
+      else if (sscanf(name, "v4l2-%s", arg_name) == 1) {
+         hud_v4l2_graph_install(pane, arg_name);
+      }
 #endif
 #ifdef HAVE_LIBSENSORS
       else if (sscanf(name, "sensors_temp_cu-%s", arg_name) == 1) {
@@ -1592,6 +1598,8 @@ print_help(struct pipe_screen *screen)
    hud_get_num_disks(1);
    hud_get_num_nics(1);
    hud_get_num_cpufreq(1);
+   hud_get_num_gpus(1);
+   hud_get_num_v4l2(1);
 #endif
 #ifdef HAVE_LIBSENSORS
    hud_get_num_sensors(1);

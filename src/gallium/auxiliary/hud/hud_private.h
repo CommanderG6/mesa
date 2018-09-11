@@ -155,10 +155,14 @@ struct hud_batch_query_context;
 #define ALL_CPUS ~0 /* optionally set as cpu_index */
 
 int hud_get_num_cpus(void);
+int hud_get_num_gpus(bool displayhelp);
+int hud_get_num_v4l2(bool displayhelp);
 
 void hud_fps_graph_install(struct hud_pane *pane);
 void hud_frametime_graph_install(struct hud_pane *pane);
 void hud_cpu_graph_install(struct hud_pane *pane, unsigned cpu_index);
+void hud_gpu_graph_install(struct hud_pane *pane, const char *gpu_name);
+void hud_v4l2_graph_install(struct hud_pane *pane, const char *v4l2_name);
 void hud_thread_busy_install(struct hud_pane *pane, const char *name, bool main);
 void hud_thread_counter_install(struct hud_pane *pane, const char *name,
                                 enum hud_counter counter);

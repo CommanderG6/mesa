@@ -114,6 +114,7 @@ files_libgallium = files(
   'hud/hud_nic.c',
   'hud/hud_cpufreq.c',
   'hud/hud_diskstat.c',
+  'hud/hud_pu.c',
   'hud/hud_sensors_temp.c',
   'hud/hud_driver_query.c',
   'hud/hud_fps.c',
