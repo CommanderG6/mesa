@@ -394,7 +394,7 @@ void* ir2_shader_assemble(struct ir2_shader *shader,
 
 		if (instr->instr_type == IR2_FETCH)
 			exec.serialize |= 0x1 << exec.count * 2;
-		if (instr->sync)
+		if (instr->sync || 1)
 			exec.serialize |= 0x2 << exec.count * 2;
 		 exec.count += 1;
 	}
