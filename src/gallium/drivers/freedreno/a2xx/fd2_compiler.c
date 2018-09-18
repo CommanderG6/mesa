@@ -50,9 +50,7 @@ struct fd2_compile_context {
 	struct tgsi_parse_context parser;
 	unsigned type;
 
-	/* predicate stack: */
 	int pred_depth;
-	enum ir2_pred pred_stack[8];
 
 	/* Internal-Temporary and Predicate register assignment:
 	 *
@@ -512,10 +510,7 @@ get_internal_temp(struct fd2_compile_context *ctx,
 
 	/* assign next temporary: */
 	n = ctx->num_internal_temps++;
-	if (ctx->pred_reg != -1)
-		n++;
-
-	tmp_dst->Index = ctx->num_regs[TGSI_FILE_TEMPORARY] + n;
+	tmp_dst->Index = ctx->num_regs[TGSI_FILE_TEMPORARY] + 2 + n;
 
 	src_from_dst(tmp_src, tmp_dst);
 }
@@ -542,45 +537,74 @@ get_predicate(struct fd2_compile_context *ctx, struct tgsi_dst_register *dst,
 }
 
 static void
+get_immediate(struct fd2_compile_context *ctx,
+		struct tgsi_src_register *reg, uint32_t val);
+
+static void
 push_predicate(struct fd2_compile_context *ctx, struct tgsi_src_register *src)
 {
 	struct ir2_instruction *alu;
-	struct tgsi_dst_register pred_dst;
+	struct tgsi_dst_register pred_dst, pred_src_dst;
+	struct tgsi_src_register pred_src, pred_src_src;
+	struct tgsi_src_register tmp_const;
+
+	ctx->pred_reg = ctx->num_regs[TGSI_FILE_TEMPORARY];
+
+	get_predicate(ctx, &pred_dst, &pred_src);
+
+	pred_src_src = pred_src;
+	pred_src_src.Index += 1;
+	pred_src_dst = pred_dst;
+	pred_src_dst.Index += 1;
+
+	alu = ir2_instr_create_alu_v(ctx->so->ir, SETEv);
+	add_src_reg(ctx, alu, src);
+	get_immediate(ctx, &tmp_const, fui(0.0));
+	add_src_reg(ctx, alu, &tmp_const);
+	add_dst_reg(ctx, alu, &pred_src_dst);
 
 	if (ctx->pred_depth == 0) {
 		/* assign predicate register: */
-		ctx->pred_reg = ctx->num_regs[TGSI_FILE_TEMPORARY];
 
 		get_predicate(ctx, &pred_dst, NULL);
 
-		alu = ir2_instr_create_alu_s(ctx->so->ir, PRED_SETNEs);
-		add_src_reg(ctx, alu, src);
+		alu = ir2_instr_create_alu_s(ctx->so->ir, PRED_SETEs);
+		add_src_reg(ctx, alu, &pred_src_src);
 		add_dst_reg(ctx, alu, &pred_dst);
+
+		ctx->so->ir->pred = IR2_PRED_EQ;
 	} else {
-		struct tgsi_src_register pred_src;
-
-		get_predicate(ctx, &pred_dst, &pred_src);
-
-		alu = ir2_instr_create_alu_v(ctx->so->ir, MULv);
+		alu = ir2_instr_create_alu_v(ctx->so->ir, PRED_SETE_PUSHv);
 		add_src_reg(ctx, alu, &pred_src);
-		add_src_reg(ctx, alu, src);
+		add_src_reg(ctx, alu, &pred_src_src);
 		add_dst_reg(ctx, alu, &pred_dst);
 
-		// XXX need to make PRED_SETE_PUSHv IR2_PRED_NONE.. but need to make
-		// sure src reg is valid if it was calculated with a predicate
-		// condition..
 		alu->pred = IR2_PRED_NONE;
 	}
 
-	/* save previous pred state to restore in pop_predicate(): */
-	ctx->pred_stack[ctx->pred_depth++] = ctx->so->ir->pred;
+	ctx->pred_depth++;
+}
+
+static void
+inv_predicate(struct fd2_compile_context *ctx)
+{
+	struct ir2_instruction *alu;
+	struct tgsi_dst_register pred_dst;
+	struct tgsi_src_register pred_src;
+
+	get_predicate(ctx, &pred_dst, &pred_src);
+
+	alu = ir2_instr_create_alu_s(ctx->so->ir, PRED_SET_INVs);
+	add_src_reg(ctx, alu, &pred_src);
+	add_dst_reg(ctx, alu, &pred_dst);
+	alu->pred = IR2_PRED_NONE;
 }
 
 static void
 pop_predicate(struct fd2_compile_context *ctx)
 {
 	/* restore previous predicate state: */
-	ctx->so->ir->pred = ctx->pred_stack[--ctx->pred_depth];
+	--ctx->pred_depth;
 
 	if (ctx->pred_depth != 0) {
 		struct ir2_instruction *alu;
@@ -596,6 +620,7 @@ pop_predicate(struct fd2_compile_context *ctx)
 	} else {
 		/* predicate register no longer needed: */
 		ctx->pred_reg = -1;
+		ctx->so->ir->pred = IR2_PRED_NONE;
 	}
 }
 
@@ -615,11 +640,6 @@ get_immediate(struct fd2_compile_context *ctx,
 
 		if (ctx->so->immediates[idx].val[swiz] == val) {
 			neg = 0;
-			break;
-		}
-
-		if (ctx->so->immediates[idx].val[swiz] == -val) {
-			neg = 1;
 			break;
 		}
 	}
@@ -807,13 +827,13 @@ translate_sge_slt_seq_sne(struct fd2_compile_context *ctx,
 	default:
 		assert(0);
 	case TGSI_OPCODE_SGE:
-		c0 = 1.0;
-		c1 = 0.0;
+		c0 = 0.0;
+		c1 = 1.0;
 		vopc = CNDGTEv;
 		break;
 	case TGSI_OPCODE_SLT:
-		c0 = 0.0;
-		c1 = 1.0;
+		c0 = 1.0;
+		c1 = 0.0;
 		vopc = CNDGTEv;
 		break;
 	case TGSI_OPCODE_SEQ:
@@ -830,9 +850,11 @@ translate_sge_slt_seq_sne(struct fd2_compile_context *ctx,
 
 	get_internal_temp(ctx, &tmp_dst, &tmp_src);
 
-	instr = ir2_instr_create_alu_v(ctx->so->ir, ADDv);
-	add_src_reg(ctx, instr, &inst->Src[0].Register)->flags |= IR2_REG_NEGATE;
+	instr = ir2_instr_create_alu_v(ctx->so->ir, MULADDv);
+	get_immediate(ctx, &tmp_const, fui(-1.0));
+	add_src_reg(ctx, instr, &tmp_const);
 	add_src_reg(ctx, instr, &inst->Src[1].Register);
+	add_src_reg(ctx, instr, &inst->Src[0].Register);
 	add_dst_reg(ctx, instr, &tmp_dst);
 
 	instr = ir2_instr_create_alu_v(ctx->so->ir, vopc);
@@ -1059,10 +1081,9 @@ translate_instruction(struct fd2_compile_context *ctx,
 		break;
 	case TGSI_OPCODE_IF:
 		push_predicate(ctx, &inst->Src[0].Register);
-		ctx->so->ir->pred = IR2_PRED_EQ;
 		break;
 	case TGSI_OPCODE_ELSE:
-		ctx->so->ir->pred = IR2_PRED_NE;
+		inv_predicate(ctx);
 		break;
 	case TGSI_OPCODE_ENDIF:
 		pop_predicate(ctx);

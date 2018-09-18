@@ -727,7 +727,10 @@ struct ir2_src_register * ir2_reg_create(struct ir2_instruction *instr,
 	int idx;
 
 	assert(instr->src_reg_count + 1 <= ARRAY_SIZE(instr->src_reg));
-	if (!(flags & IR2_REG_CONST)) {
+	if (flags & IR2_REG_CONST) {
+		/* no negate / abs on constants */
+		assert(flags == IR2_REG_CONST);
+	} else {
 		if (!(flags & IR2_REG_INPUT)) {
 			idx = shader->tgsi_reg_map[num];
 			assert(idx);
