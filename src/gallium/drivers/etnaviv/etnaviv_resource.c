@@ -640,6 +640,27 @@ etna_resource_get_handle(struct pipe_screen *pscreen,
    }
 }
 
+static bool
+etna_check_resource_capability(struct pipe_screen *pscreen,
+                               struct pipe_resource *prsc,
+                               unsigned bind)
+{
+   struct etna_screen *screen = etna_screen(pscreen);
+   struct etna_resource *rsc = etna_resource(prsc);
+
+   if ((bind & PIPE_BIND_LINEAR) && rsc->layout != ETNA_LAYOUT_LINEAR)
+      return false;
+
+   if ((bind & PIPE_BIND_SCANOUT) && !rsc->scanout) {
+      rsc->scanout = renderonly_create_gpu_import_for_resource(prsc, screen->ro,
+                                                               NULL);
+      if (!rsc->scanout)
+         return false;
+   }
+
+   return true;
+}
+
 void
 etna_resource_used(struct etna_context *ctx, struct pipe_resource *prsc,
                    enum etna_resource_status status)
@@ -683,4 +704,5 @@ etna_resource_screen_init(struct pipe_screen *pscreen)
    pscreen->resource_get_handle = etna_resource_get_handle;
    pscreen->resource_changed = etna_resource_changed;
    pscreen->resource_destroy = etna_resource_destroy;
+   pscreen->check_resource_capability = etna_check_resource_capability;
 }
