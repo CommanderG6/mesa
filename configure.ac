@@ -38,7 +38,7 @@ m4_divert_once([HELP_END], [
 See docs/autoconf.html for more details on the options for Mesa.])
 
 m4_define(MESA_VERSION, m4_normalize(m4_include(VERSION)))
-AC_INIT([Mesa], [MESA_VERSION],
+AC_INIT([Mesa], [MESA_VERSION.20181012-1],
     [https://bugs.freedesktop.org/enter_bug.cgi?product=Mesa])
 AC_CONFIG_AUX_DIR([bin])
 AC_CONFIG_MACRO_DIR([m4])
