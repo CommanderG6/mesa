@@ -37,6 +37,7 @@
 #include <stdio.h>
 #include <sync/sync.h>
 #include <sys/types.h>
+#include <drm_fourcc.h>
 
 #include "loader.h"
 #include "egl_dri2.h"
@@ -47,7 +48,11 @@
 #include "gralloc_drm.h"
 #endif /* HAVE_DRM_GRALLOC */
 
+#include <gralloc_handle.h>
+
 #define ALIGN(val, align)	(((val) + (align) - 1) & ~((align) - 1))
+
+#include <log/log.h>
 
 struct droid_yuv_format {
    /* Lookup keys */
@@ -487,6 +492,8 @@ get_front_bo(struct dri2_egl_surface *dri2_surf, unsigned int format)
        */
       _eglLog(_EGL_DEBUG, "DRI driver requested unsupported front buffer for window surface");
    } else if (dri2_surf->base.Type == EGL_PBUFFER_BIT) {
+      ALOGW("********************* %s: dri2_dpy->image->createImage without modifier", __func__);
+
       dri2_surf->dri_image_front =
           dri2_dpy->image->createImage(dri2_dpy->dri_screen,
                                               dri2_surf->base.Width,
@@ -509,7 +516,9 @@ get_back_bo(struct dri2_egl_surface *dri2_surf)
    struct dri2_egl_display *dri2_dpy =
       dri2_egl_display(dri2_surf->base.Resource.Display);
    int fourcc, pitch;
-   int offset = 0, fd;
+   int offset = 0;
+   int fds[1];
+   unsigned error;
 
    if (dri2_surf->dri_image_back)
       return 0;
@@ -520,8 +529,8 @@ get_back_bo(struct dri2_egl_surface *dri2_surf)
          return -1;
       }
 
-      fd = get_native_buffer_fd(dri2_surf->buffer);
-      if (fd < 0) {
+      fds[0] = get_native_buffer_fd(dri2_surf->buffer);
+      if (fds[0] < 0) {
          _eglLog(_EGL_WARNING, "Could not get native buffer FD");
          return -1;
       }
@@ -537,16 +546,19 @@ get_back_bo(struct dri2_egl_surface *dri2_surf)
          return -1;
       }
 
+      struct gralloc_gbm_handle_t *grh = (struct gralloc_gbm_handle_t *)dri2_surf->buffer->handle;
       dri2_surf->dri_image_back =
-         dri2_dpy->image->createImageFromFds(dri2_dpy->dri_screen,
-                                             dri2_surf->base.Width,
-                                             dri2_surf->base.Height,
-                                             fourcc,
-                                             &fd,
-                                             1,
-                                             &pitch,
-                                             &offset,
-                                             dri2_surf);
+            dri2_dpy->image->createImageFromDmaBufs2(dri2_dpy->dri_screen,
+                                                     dri2_surf->base.Width,
+                                                     dri2_surf->base.Height,
+                                                     fourcc,
+                                                  grh->modifier,
+                                                  fds,
+                                                  1,
+                                                  &pitch,
+                                                  &offset,
+                                                  0, 0, 0, 0,
+                                                  &error, dri2_surf);
       if (!dri2_surf->dri_image_back) {
          _eglLog(_EGL_WARNING, "failed to create DRI image from FD");
          return -1;
@@ -835,15 +847,36 @@ droid_create_image_from_prime_fd(_EGLDisplay *disp, _EGLContext *ctx,
       return NULL;
    }
 
-   const EGLint attr_list[] = {
+   uint64_t modifier = 0;
+   bool have_modifier = false;
+   struct gralloc_gbm_handle_t *grh = (struct gralloc_gbm_handle_t *)buf->handle;
+   if (grh->magic == GRALLOC_HANDLE_MAGIC) {
+      modifier = grh->modifier;
+      have_modifier = true;
+   }
+
+   EGLint attr_list[] = {
       EGL_WIDTH, buf->width,
       EGL_HEIGHT, buf->height,
       EGL_LINUX_DRM_FOURCC_EXT, fourcc,
       EGL_DMA_BUF_PLANE0_FD_EXT, fd,
       EGL_DMA_BUF_PLANE0_PITCH_EXT, pitch,
       EGL_DMA_BUF_PLANE0_OFFSET_EXT, 0,
+      EGL_DMA_BUF_PLANE0_MODIFIER_LO_EXT, modifier & 0xffffffff,
+      EGL_DMA_BUF_PLANE0_MODIFIER_HI_EXT, modifier >> 32,
       EGL_NONE, 0
    };
+
+   if (!have_modifier) {
+      for (int i = 0; i < ARRAY_SIZE(attr_list); i += 2) {
+         if (attr_list[i] == EGL_DMA_BUF_PLANE0_MODIFIER_LO_EXT) {
+            attr_list[i] = EGL_NONE;
+            break;
+         }
+      }
+   }
+
+   ALOGW("********************* %s: modifier %llx", __func__, modifier);
 
    return dri2_create_image_dma_buf(disp, ctx, NULL, attr_list);
 }
@@ -875,6 +908,8 @@ droid_create_image_from_name(_EGLDisplay *disp, _EGLContext *ctx,
    }
 
    _eglInitImage(&dri2_img->base, disp);
+
+   ALOGW("********************* %s: dri2_dpy->image->createImageFromFds without modifier", __func__);
 
    dri2_img->dri_image =
       dri2_dpy->image->createImageFromName(dri2_dpy->dri_screen,
@@ -963,9 +998,11 @@ droid_create_image_khr(_EGLDriver *drv, _EGLDisplay *disp,
 {
    switch (target) {
    case EGL_NATIVE_BUFFER_ANDROID:
+      ALOGW("********************* %s: dri2_create_image_android_native_buffer without modifier", __func__);
       return dri2_create_image_android_native_buffer(disp, ctx,
             (struct ANativeWindowBuffer *) buffer);
    default:
+      ALOGW("********************* %s: dri2_create_image_khr without modifier", __func__);
       return dri2_create_image_khr(drv, disp, ctx, target, buffer, attr_list);
    }
 }
